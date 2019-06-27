@@ -48,8 +48,7 @@ where
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
-        let bucket = self.bucket(key);
-        self.buckets[bucket]
+        self.buckets[self.bucket(key)]
             .iter()
             .find(|&(ref ekey, _)| ekey == key)
             .map(|&(_, ref v)| v)
