@@ -19,6 +19,61 @@ impl<K, V> HashMap<K, V> {
     }
 }
 
+pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
+    entry: &'a mut (K, V),
+}
+
+pub struct VacantEntry<'a, K: 'a, V: 'a> {
+    key: K,
+    map: &'a mut HashMap<K, V>,
+    bucket: usize,
+}
+
+impl<'a, K: 'a, V: 'a> VacantEntry<'a, K, V> {
+    pub fn insert(self, value: V) -> &'a mut V
+    where
+        K: Hash + Eq,
+    {
+        self.map.buckets[self.bucket].push((self.key, value));
+        self.map.items += 1;
+        &mut self.map.buckets[self.bucket].last_mut().unwrap().1
+    }
+}
+
+pub enum Entry<'a, K: 'a, V: 'a> {
+    Occupied(OccupiedEntry<'a, K, V>),
+    Vacant(VacantEntry<'a, K, V>),
+}
+
+impl<'a, K, V> Entry<'a, K, V>
+where
+    K: Hash + Eq,
+{
+    pub fn or_insert(self, value: V) -> &'a mut V {
+        match self {
+            Entry::Occupied(e) => &mut e.entry.1,
+            Entry::Vacant(e) => e.insert(value),
+        }
+    }
+
+    pub fn or_insert_with<F>(self, maker: F) -> &'a mut V
+    where
+        F: FnOnce() -> V,
+    {
+        match self {
+            Entry::Occupied(e) => &mut e.entry.1,
+            Entry::Vacant(e) => e.insert(maker()),
+        }
+    }
+
+    pub fn or_default(self) -> &'a mut V
+    where
+        V: Default,
+    {
+        self.or_insert_with(Default::default)
+    }
+}
+
 impl<K, V> HashMap<K, V>
 where
     K: Hash + Eq,
@@ -31,6 +86,27 @@ where
         let mut hasher = DefaultHasher::new();
         key.hash(&mut hasher);
         (hasher.finish() % self.buckets.len() as u64) as usize
+    }
+
+    pub fn entry(&mut self, key: K) -> Entry<K, V> {
+        if self.buckets.is_empty() || self.items > 3 * self.buckets.len() / 4 {
+            self.resize();
+        }
+
+        let bucket = self.bucket(&key);
+        match self.buckets[bucket]
+            .iter()
+            .position(|&(ref ekey, _)| ekey == &key)
+        {
+            Some(index) => Entry::Occupied(OccupiedEntry {
+                entry: &mut self.buckets[bucket][index],
+            }),
+            None => Entry::Vacant(VacantEntry {
+                map: self,
+                key,
+                bucket,
+            }),
+        }
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
