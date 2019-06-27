@@ -58,7 +58,16 @@ where
         let bucket = self.bucket(key);
         let bucket = &mut self.buckets[bucket];
         let i = bucket.iter().position(|&(ref ekey, _)| ekey == key)?;
+        self.items -= 1;
         Some(bucket.swap_remove(i).1)
+    }
+
+    pub fn len(&self) -> usize {
+        self.items
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items == 0
     }
 
     fn resize(&mut self) {
@@ -88,9 +97,15 @@ mod tests {
     #[test]
     fn insert() {
         let mut map = HashMap::new();
+        assert_eq!(map.len(), 0);
+        assert!(map.is_empty());
         map.insert("foo", 42);
+        assert_eq!(map.len(), 1);
+        assert!(!map.is_empty());
         assert_eq!(map.get(&"foo"), Some(&42));
         assert_eq!(map.remove(&"foo"), Some(42));
         assert_eq!(map.get(&"foo"), None);
+        assert_eq!(map.len(), 0);
+        assert!(map.is_empty());
     }
 }
