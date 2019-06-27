@@ -47,7 +47,13 @@ where
         None
     }
 
-    pub fn get(&self, key: &K) -> Option<&V> {}
+    pub fn get(&self, key: &K) -> Option<&V> {
+        let bucket = self.bucket(key);
+        self.buckets[bucket]
+            .iter()
+            .find(|&(ref ekey, _)| ekey == key)
+            .map(|&(_, ref v)| v)
+    }
 
     fn resize(&mut self) {
         let target_size = match self.buckets.len() {
@@ -77,5 +83,6 @@ mod tests {
     fn insert() {
         let mut map = HashMap::new();
         map.insert("foo", 42);
+        assert_eq!(map.get(&"foo"), Some(&42));
     }
 }
