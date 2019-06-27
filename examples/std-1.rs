@@ -1,6 +1,7 @@
 extern crate hashmap;
 use hasmap::HashMap;
 
+// example from: https://doc.rust-lang.org/1.4.0/std/collections/struct.HashMap.html
 fn main() {
     // type inference lets us omit an explicit type signature (which
     // would be `HashMap<&str, &str>` in this example).
