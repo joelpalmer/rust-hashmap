@@ -1,5 +1,5 @@
 extern crate hashmap;
-use hasmap::HashMap;
+use hashmap::HashMap;
 
 // example from: https://doc.rust-lang.org/1.4.0/std/collections/struct.HashMap.html
 fn main() {
