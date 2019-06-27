@@ -54,6 +54,10 @@ where
             .map(|&(_, ref v)| v)
     }
 
+    pub fn contains_key(&self, key: &K) -> bool {
+        self.get(key).is_some()
+    }
+
     pub fn remove(&mut self, key: &K) -> Option<V> {
         let bucket = self.bucket(key);
         let bucket = &mut self.buckets[bucket];
@@ -90,6 +94,46 @@ where
     }
 }
 
+pub struct Iter<'a, K: 'a, V: 'a> {
+    map: &'a HashMap<K, V>,
+    bucket: usize,
+    at: usize,
+}
+
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.map.buckets.get(self.bucket) {
+                Some(bucket) => match bucket.get(self.at) {
+                    Some(&(ref k, ref v)) => {
+                        self.at += 1;
+                        break Some((k, v));
+                    }
+                    None => {
+                        self.bucket += 1;
+                        self.at = 0;
+                        continue;
+                    }
+                },
+                None => break None,
+            }
+        }
+    }
+}
+
+impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
+    type Item = (&'a K, &'a V);
+    type IntoIter = Iter<'a, K, V>;
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            map: self,
+            bucket: 0,
+            at: 0,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,5 +151,24 @@ mod tests {
         assert_eq!(map.get(&"foo"), None);
         assert_eq!(map.len(), 0);
         assert!(map.is_empty());
+    }
+
+    #[test]
+    fn iter() {
+        let mut map = HashMap::new();
+        map.insert("joel", 42);
+        map.insert("liam", 4);
+        map.insert("bash", 2);
+        map.insert("michelle", 39);
+        for (&k, &v) in &map {
+            match k {
+                "joel" => assert_eq!(v, 42),
+                "liam" => assert_eq!(v, 4),
+                "bash" => assert_eq!(v, 2),
+                "michelle" => assert_eq!(v, 39),
+                _ => unreachable!(),
+            }
+        }
+        assert_eq!((&map).into_iter().count(), 4);
     }
 }
